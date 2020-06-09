@@ -48,9 +48,12 @@ export function savePreferences({
   destinationPreferences,
   customPreferences,
   cookieDomain
-}: SavePreferences) {
+}: SavePreferences, anonymousId?: string) {
   const wd = window as WindowWithAJS
   if (wd.analytics) {
+     if(anonymousId){
+      wd.analytics.setAnonymousId(anonymousId);
+    }
     wd.analytics.identify({
       destinationTrackingPreferences: destinationPreferences,
       customTrackingPreferences: customPreferences
