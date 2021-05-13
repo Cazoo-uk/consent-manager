@@ -89,6 +89,45 @@ describe('ConsentManagerBuilder', () => {
     )
   })
 
+  test('loads analytics.js with the user and overridden preferences', done => {
+    const ajsLoad = sinon.spy()
+    document.cookie =
+      'tracking-preferences={%22version%22:1%2C%22destinations%22:{%22Amplitude%22:true%2C%22FullStory%22:true}}'
+    window.analytics = { load: ajsLoad }
+    const writeKey = '123'
+
+    nock('https://cdn.segment.com')
+      .get('/v1/projects/123/integrations')
+      .reply(200, [
+        {
+          name: 'Amplitude',
+          creationName: 'Amplitude'
+        },
+        {
+          name: 'FullStory',
+          creationName: 'FullStory'
+        }
+      ])
+
+    shallow(
+      <ConsentManagerBuilder overriddenPreferences={{ FullStory: false }} writeKey={writeKey}>
+        {() => {
+          expect(ajsLoad.calledOnce).toBe(true)
+          expect(ajsLoad.args[0][0]).toBe(writeKey)
+          expect(ajsLoad.args[0][1]).toEqual({
+            integrations: {
+              All: false,
+              Amplitude: true,
+              FullStory: false,
+              'Segment.io': true
+            }
+          })
+          done()
+        }}
+      </ConsentManagerBuilder>
+    )
+  })
+
   test('loads analytics.js with the user՚s preferences', done => {
     const ajsLoad = sinon.spy()
     document.cookie =

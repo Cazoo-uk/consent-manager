@@ -21,6 +21,10 @@ function getNewDestinations(destinations: Destination[], preferences: CategoryPr
   return newDestinations
 }
 
+interface OverriddenPreferences {
+  [key: string]: boolean
+}
+
 interface Props {
   /** Your Segment Write key for your website */
   writeKey: string
@@ -34,6 +38,11 @@ interface Props {
    * An initial selection of Preferences
    */
   initialPreferences?: CategoryPreferences
+
+  /**
+   * This is where we override the properties
+   */
+  overriddenPreferences?: OverriddenPreferences
 
   /**
    * Provide a function to define whether or not consent should be required
@@ -72,7 +81,11 @@ interface RenderProps {
   customCategories?: CustomCategories
   setPreferences: (newPreferences: CategoryPreferences) => void
   resetPreferences: () => void
-  saveConsent: (newPreferences?: CategoryPreferences | boolean, shouldReload?: boolean) => void
+  saveConsent: (
+    newPreferences?: CategoryPreferences | boolean,
+    shouldReload?: boolean,
+    overriddenPreferences?: OverriddenPreferences
+  ) => void
 }
 
 interface State {
@@ -140,7 +153,8 @@ export default class ConsentManagerBuilder extends Component<Props, State> {
       otherWriteKeys = ConsentManagerBuilder.defaultProps.otherWriteKeys,
       shouldRequireConsent = ConsentManagerBuilder.defaultProps.shouldRequireConsent,
       initialPreferences,
-      mapCustomPreferences
+      mapCustomPreferences,
+      overriddenPreferences = {}
     } = this.props
     // TODO: add option to run mapCustomPreferences on load so that the destination preferences automatically get updated
     let { destinationPreferences = {}, customPreferences } = loadPreferences()
@@ -170,10 +184,17 @@ export default class ConsentManagerBuilder extends Component<Props, State> {
       preferences = destinationPreferences || initialPreferences
     }
 
+    // this is where we'll check if destination preferences are called
+
+    const newDestinationPreferences = {
+      ...destinationPreferences,
+      ...overriddenPreferences
+    }
+
     conditionallyLoadAnalytics({
       writeKey,
       destinations,
-      destinationPreferences,
+      destinationPreferences: newDestinationPreferences,
       isConsentRequired
     })
 
@@ -212,7 +233,11 @@ export default class ConsentManagerBuilder extends Component<Props, State> {
     this.setState({ preferences })
   }
 
-  handleSaveConsent = (newPreferences: CategoryPreferences | undefined, shouldReload: boolean) => {
+  handleSaveConsent = (
+    newPreferences: CategoryPreferences | undefined,
+    shouldReload: boolean,
+    overriddenPreferences: OverriddenPreferences = {}
+  ) => {
     const { writeKey, cookieDomain, mapCustomPreferences } = this.props
 
     this.setState(prevState => {
@@ -246,10 +271,16 @@ export default class ConsentManagerBuilder extends Component<Props, State> {
       const newDestinations = getNewDestinations(destinations, destinationPreferences)
 
       savePreferences({ destinationPreferences, customPreferences, cookieDomain })
+
+      const newDestinationPreferences = {
+        ...destinationPreferences,
+        ...overriddenPreferences
+      }
+
       conditionallyLoadAnalytics({
         writeKey,
         destinations,
-        destinationPreferences,
+        destinationPreferences: newDestinationPreferences,
         isConsentRequired,
         shouldReload
       })
