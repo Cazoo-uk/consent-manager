@@ -1,24 +1,125 @@
-version: 2
-jobs:
-  build:
+version: 2.1
+
+commands:
+  attach-to-workspace:
+    steps:
+      - attach_workspace:
+          at: /home/circleci
+  persist-to-workspace:
+    steps:
+      - persist_to_workspace:
+          root: /home/circleci
+          paths:
+            - .ssh
+            - project
+
+executors:
+  node:
     docker:
-      - image: circleci/node:10
+      - image: circleci/node:dubnium
+    working_directory: ~/project
+
+jobs:
+  checkout:
+    executor: node
     steps:
       - checkout
-      - restore_cache:
-          key: dependency-cache-{{ checksum "yarn.lock" }}
-      - run: yarn install --frozen-lockfile
-      - save_cache:
-          key: dependency-cache-{{ checksum "yarn.lock" }}
-          paths:
-            - ./node_modules
-      - run: yarn build
-      - run: yarn lint
-      - run: yarn test
-      - run: yarn size-limit
+      - persist-to-workspace
+  dependencies-resolution:
+    executor: node
+    steps:
+      - attach-to-workspace
+      - run:
+          name: Host SSH Key Scan
+          command: mkdir -p /home/circleci/.ssh && ssh-keyscan github.com >> ~/.ssh/known_hosts
+      - run:
+          name: NPM Dependencies Resolution
+          command: yarn
+      - persist-to-workspace
+  test:
+    executor: node
+    steps:
+      - attach-to-workspace
+      - run:
+          name: Test
+          command: |
+            yarn lint
+            yarn test -- --maxWorkers 2
+            yarn build
+  build:
+    executor: node
+    steps:
+      - attach-to-workspace
+      - run:
+          name: Build
+          command: yarn build
+      - persist-to-workspace
+  release:
+    executor: node
+    steps:
+      - attach-to-workspace
+      - run:
+          name: Release
+          command: |
+            echo "@cazoo-uk:registry=https://npm.pkg.github.com/">.npmrc
+            echo '//npm.pkg.github.com/:_authToken=${CAZOO_GITHUB_NPM_TOKEN}'>>.npmrc
+            npm publish
 
 workflows:
-  version: 2
-  build:
+  test:
     jobs:
-      - build
+      - checkout:
+          filters:
+            branches:
+              ignore: master
+            tags:
+              ignore: /.*/
+      - dependencies-resolution:
+          requires:
+            - checkout
+          filters:
+            branches:
+              ignore: master
+            tags:
+              ignore: /.*/
+      - test:
+          requires:
+            - dependencies-resolution
+          filters:
+            branches:
+              ignore: master
+            tags:
+              ignore: /.*/
+  build-and-release:
+    jobs:
+      - checkout:
+          filters:
+            branches:
+              ignore: /.*/
+            tags:
+              only: /^(\d|[1-9]\d*)\.(\d|[1-9]\d*)\.(\d|[1-9]\d*)/
+      - dependencies-resolution:
+          requires:
+            - checkout
+          filters:
+            branches:
+              ignore: /.*/
+            tags:
+              only: /^(\d|[1-9]\d*)\.(\d|[1-9]\d*)\.(\d|[1-9]\d*)/
+      - build:
+          requires:
+            - dependencies-resolution
+          filters:
+            branches:
+              ignore: /.*/
+            tags:
+              only: /^(\d|[1-9]\d*)\.(\d|[1-9]\d*)\.(\d|[1-9]\d*)/
+      - release:
+          context: cazoo-npm
+          requires:
+            - build
+          filters:
+            branches:
+              ignore: /.*/
+            tags:
+              only: /^(\d|[1-9]\d*)\.(\d|[1-9]\d*)\.(\d|[1-9]\d*)/
