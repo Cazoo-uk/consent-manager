@@ -4,6 +4,28 @@
 
 [StoryBook](https://segmentio.github.io/consent-manager/index.html)
 
+Why we forked off and made changes
+
+how to release
+
+## Why we forked off of consent-manager
+
+We want to use FullStory however we want to avoid it from being used on Checkout. FullStory don't allow us to edit their script so we have to pass in a prop that overrides FullStory from being triggered in certain areas.
+
+## Creating a new release
+
+We strictly follow [semantic versioning](https://semver.org/) so please consider this when working on this library.
+
+### Before you open a PR
+
+- Use NPM to bump the `<path|minor|major>` version from your local machine.
+
+```
+npm --no-git-tag-version version <patch|minor|major>
+```
+
+- Commit and push this change
+
 ## Segment Consent Manager
 
 The Segment Consent Manager is an analytics.js add-on with support to consent management.
