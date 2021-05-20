@@ -4,6 +4,45 @@
 
 [StoryBook](https://segmentio.github.io/consent-manager/index.html)
 
+Why we forked off and made changes
+
+how to release
+
+## Why we forked off of consent-manager
+
+We want to use FullStory however we want to avoid it from being used on Checkout. FullStory don't allow us to edit their script so we have to pass in a prop that overrides the script that are loaded on runtime through segment.
+
+## Creating a new release
+
+We strictly follow [semantic versioning](https://semver.org/) so please consider this when working on this library.
+
+### Before you open a PR
+
+- Use NPM to bump the `<path|minor|major>` version from your local machine.
+
+```
+npm --no-git-tag-version version <patch|minor|major>
+```
+
+- Commit and push this change
+
+### When your PR has been approved
+
+- Merge & squash the PR on master
+- Checkout & pull master on your local machine
+- Create and push a tag to the remote
+
+```
+git checkout master && git pull
+NEW_VERSION="$(npx -c 'echo "$npm_package_version"')"
+git tag -a "$NEW_VERSION" -m "$NEW_VERSION"
+git push --follow-tags
+```
+
+The pipeline will get automatically triggered by the new pushed tag and will deploy the latest version to NPM.
+
+All releases can be pointed, from the package.json file.
+
 ## Segment Consent Manager
 
 The Segment Consent Manager is an analytics.js add-on with support to consent management.
