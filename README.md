@@ -41,7 +41,7 @@ git push --follow-tags
 
 The pipeline will get automatically triggered by the new pushed tag and will deploy the latest version to NPM.
 
-All releases can be pointed, from the package.json file, as git resources and the releases starting from 10.13.2 can also be pointed as NPM resources.
+All releases can be pointed, from the package.json file.
 
 ## Segment Consent Manager
 
